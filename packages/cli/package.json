@@ -1,0 +1,23 @@
+{
+  "name": "@visionfix/cli",
+  "version": "0.1.0",
+  "description": "CLI interface for VisionFix AI",
+  "type": "module",
+  "bin": {
+    "visionfix": "./bin/visionfix.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "node ./bin/visionfix.js"
+  },
+  "dependencies": {
+    "@visionfix/core": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "typescript": "^5.8.2"
+  }
+}

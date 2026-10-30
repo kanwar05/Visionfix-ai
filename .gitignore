@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build artifacts
+dist/
+build/
+*.tsbuildinfo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Test artifacts and smoke evidence
+artifacts/
+test-results/
+playwright-report/
+*.log
+
+# OS metadata
+.DS_Store
+Thumbs.db
