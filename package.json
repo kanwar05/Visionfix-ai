@@ -1,0 +1,29 @@
+{
+  "name": "visionfix-ai-root",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "VisionFix AI — StressProof responsive UI repair tool (Phase 0)",
+  "workspaces": [
+    "packages/*",
+    "fixtures/*"
+  ],
+  "scripts": {
+    "build": "npm run --workspaces --if-present build",
+    "typecheck": "npm run --workspaces --if-present typecheck",
+    "cli": "node packages/cli/bin/visionfix.js",
+    "fixture:dev": "npm run --workspace=@visionfix-fixture/broken-shop dev",
+    "fixture:build": "npm run --workspace=@visionfix-fixture/broken-shop build",
+    "fixture:preview": "npm run --workspace=@visionfix-fixture/broken-shop preview",
+    "test:smoke:playwright": "tsx scripts/smoke-playwright.ts",
+    "test:smoke:meta": "tsx scripts/smoke-meta.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "dotenv": "^16.4.7",
+    "playwright": "^1.51.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "zod": "^3.24.2"
+  }
+}
