@@ -15,6 +15,7 @@ This document defines non-negotiable repository rules and operating constraints 
 - Fixtures located in `fixtures/` are test inputs, not product interfaces or user projects.
 
 ## 3. Secret Protection and Credential Safety
+- **Never delete, overwrite, display or log existing `.env` files or credentials.** Preserve them during implementation, inspection, tests, cleanup and repairs; do not repeat the previous `.env` deletion.
 - **Never expose credentials or commit `.env` files.**
 - Keep `.env` and local credential files in `.gitignore`.
 - Provide only `.env.example` with safe placeholder values in version control.
