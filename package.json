@@ -3,20 +3,22 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "VisionFix AI — StressProof responsive UI repair tool (Phase 0)",
+  "description": "VisionFix AI — StressProof browser inspection and overflow detection (Phase 1)",
   "workspaces": [
     "packages/*",
     "fixtures/*"
   ],
   "scripts": {
-    "build": "npm run --workspaces --if-present build",
-    "typecheck": "npm run --workspaces --if-present typecheck",
+    "build": "npm run --workspace=@visionfix/core build && npm run --workspace=@visionfix/cli build && npm run fixture:build",
+    "typecheck": "npm run --workspace=@visionfix/core build && npm run --workspaces --if-present typecheck",
     "cli": "node packages/cli/bin/visionfix.js",
     "fixture:dev": "npm run --workspace=@visionfix-fixture/broken-shop dev",
     "fixture:build": "npm run --workspace=@visionfix-fixture/broken-shop build",
     "fixture:preview": "npm run --workspace=@visionfix-fixture/broken-shop preview",
     "test:smoke:playwright": "tsx scripts/smoke-playwright.ts",
-    "test:smoke:meta": "tsx scripts/smoke-meta.ts"
+    "test:smoke:meta": "tsx scripts/smoke-meta.ts",
+    "test": "npm run build && node --import tsx --test tests/scan.test.ts",
+    "test:scan": "npm test"
   },
   "devDependencies": {
     "@types/node": "^22.13.9",

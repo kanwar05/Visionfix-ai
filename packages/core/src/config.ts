@@ -2,9 +2,6 @@ import { z } from 'zod';
 import dotenv from 'dotenv';
 import path from 'node:path';
 
-// Load .env from root workspace if present
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
-
 export const MetaConfigSchema = z.object({
   apiKey: z
     .string()
@@ -51,6 +48,8 @@ export function maskKey(key: string): string {
  * Safe to call even if .env is missing or variables are unset.
  */
 export function loadMetaConfig(): MetaConfigCheckResult {
+  // Only the explicitly invoked Meta check loads credentials. Importing core for a scan does not.
+  dotenv.config({ path: path.resolve(process.cwd(), '.env') });
   const rawKey = process.env.META_API_KEY?.trim() ?? '';
   const rawBaseUrl = process.env.META_BASE_URL?.trim() || 'https://api.meta.ai/v1';
   const rawModel = process.env.META_MODEL?.trim() || 'muse-spark-1.3';
