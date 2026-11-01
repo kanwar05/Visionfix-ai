@@ -2,6 +2,8 @@
 
 VisionFix AI is a local-first developer tool designed to automatically detect, diagnose, repair, and verify responsive layout bugs in modern web applications (specifically React + Vite projects).
 
+Current Phase 1 implements browser inspection and local JSON/PNG reports only. Diagnosis, source mapping and repairs in the pipeline below are future work. Scanning makes no model calls and does not load credentials or collect source files; it parses only an isolated package.json copy.
+
 ---
 
 ## 1. High-Level Future Pipeline Flow

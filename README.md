@@ -1,117 +1,99 @@
 # VisionFix AI — StressProof
 
-A local-first developer tool that inspects React + Vite applications, discovers responsive layout bugs, proposes source-code repairs in an isolated copy, and verifies those repairs using Playwright.
+Phase 1 implements local browser inspection and horizontal overflow detection for a separately running React + Vite application. The existing Phase 0 CLI, fixture, Playwright smoke test and Meta smoke-test command remain available. AI diagnosis, source mapping, repairs and dashboards are future work.
 
----
+## Setup
 
-## Current Status: Phase 0 (Foundation)
+Use Node.js 20+ and npm 10+ (verification used Node 24.21.0 and npm 12.1.0). From the repository root, run these commands separately:
 
-This repository currently implements **Phase 0 only**.
-
-### What Phase 0 Implements:
-- Minimal TypeScript monorepo using npm workspaces (`@visionfix/core`, `@visionfix/cli`, `@visionfix-fixture/broken-shop`).
-- Unified TypeScript build and typecheck configuration.
-- Minimal CLI printing application name, version, and phase.
-- Deliberately broken React + Vite fixture (`fixtures/broken-shop`) featuring an intentional 480px fixed-width container causing horizontal overflow on a 320px viewport.
-- Playwright smoke test script that starts the fixture, awaits server readiness, launches headless Chromium at 320px, deterministically asserts document overflow, captures screenshot evidence, and cleanly shuts down.
-- Meta Model API integration with Zod configuration validation, timeout handling, safe credential masking, and smoke test script.
-- Repository operating rules (`AGENTS.md`) and architectural documentation (`docs/`).
-
-### What Remains Unimplemented (Future Phases):
-- Multi-viewport responsive scanner (Phase 1).
-- React source mapping and Meta LLM layout diagnosis (Phase 2).
-- Isolated workspace patching and automated repair loop (Phase 3).
-- Layout stress testing and visual proof reports (Phase 4).
-- Comprehensive benchmark evaluation (Phase 5).
-
----
-
-## Prerequisites
-- **Node.js**: `v20+` or `v24+` (verified on Node `v24.21.0`).
-- **npm**: `v10+` or `v12+` (verified on npm `12.1.0`).
-- **Operating System**: Windows, macOS, or Linux (cross-platform compatible scripts).
-
----
-
-## Setup Instructions
-
-### 1. Install Dependencies
-```bash
+```powershell
 npm install
-```
-
-### 2. Install Playwright Chromium Browser
-```bash
 npx playwright install chromium
-```
-
----
-
-## Configuring Local Credentials (Meta API)
-
-To configure access for the Meta Model API smoke test:
-
-1. Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
-   *(On Windows PowerShell: `Copy-Item .env.example .env`)*
-
-2. Open `.env` in your editor and configure the variables:
-   ```env
-   META_BASE_URL=https://api.meta.ai/v1
-   META_API_KEY=your_actual_bearer_token_here
-   META_MODEL=muse-spark-1.3
-   ```
-
-> ⚠️ **SECURITY RULES**:
-> - Never paste your API key or secrets into public chats or commit them to Git.
-> - `.env` is listed in `.gitignore` and must remain local to your machine.
-> - The smoke test loads credentials safely and masks keys when displaying diagnostic info.
-
----
-
-## Available Commands
-
-### Build & Typecheck
-```bash
-# Typecheck all packages and fixtures
-npm run typecheck
-
-# Build all packages
 npm run build
+npm run typecheck
 ```
 
-### CLI
-```bash
-# Run CLI via package script
-npm run cli -- --version
+Build order is core, CLI, then broken-shop. Typecheck builds core declarations before checking the CLI.
 
-# Or run directly via Node
-node packages/cli/bin/visionfix.js --version
-```
+## Run a scan
 
-### Broken Shop Fixture
-```bash
-# Start Vite development server (port 5173)
+Start the target yourself in terminal 1 and leave it running:
+
+```powershell
 npm run fixture:dev
+```
 
-# Build fixture for production
+The existing broken-shop fixture listens on port **5180**. In terminal 2, from the repository root, use this single-line command (also valid in Windows PowerShell):
+
+```powershell
+npm run cli -- scan --project ./fixtures/broken-shop --url http://127.0.0.1:5180
+```
+
+For an existing application, start it normally yourself, then supply its project directory and running local URL. The scanner never installs dependencies, runs project scripts or starts the application. The project manifest and URL are supplied independently; the scanner cannot establish that a server belongs to that directory.
+
+Optional output parent (every scan still gets its own UUID subdirectory):
+
+```powershell
+npm run cli -- scan --project ./fixtures/broken-shop --url http://127.0.0.1:5180 --output ./artifacts/manual-scans
+npm run cli -- scan --help
+npm run cli -- --help
+npm run cli -- --version
+```
+
+Only absolute HTTP URLs on `localhost`, `127.0.0.1` or `[::1]` are accepted. HTTPS, other hosts and credential-bearing URLs are rejected. Every top-level HTTP redirect hop is checked before following it, including chains through local URLs. Nested document navigations and popup navigations are unsupported and blocked with explicit scan failures. A fresh Chromium context is used for each width, without saved browser credentials, cookies or localStorage.
+
+The local URL restriction **is not a network sandbox**: pages can load external subresources or contact services, and the separately running application retains its own permissions. Scan only applications you trust.
+
+## Evidence and report format
+
+All scans attempt widths **320, 375, 390, 768 and 1440px**, at height **900px** and device scale factor **1**. Navigation has a 10-second timeout; readiness uses one 5-second budget for DOM/fonts and a short settle interval; screenshot capture has a 10-second timeout. Recognized execution-context replacement during a reload is retried only within that readiness budget. Animations and transitions are disabled; there is no networkidle wait. Navigation, readiness, browser and screenshot errors produce explicit failures.
+
+Each ignored report directory contains `report.json` and `screenshots/<width>.png` for viewports that reach successful screenshot capture. Screenshots capture the viewport only, bounding image dimensions at 1440 × 900; geometry still measures the rendered document beyond the screenshot.
+
+Exported Zod schemas and TypeScript types live in `packages/core/src/scan-schema.ts`. The report includes:
+
+- Schema version `1.0.0`, UUID scan ID, ISO timestamps, target URL and validated project metadata.
+- Tested viewports and overall `complete`, `partial` or `failed` status.
+- Per-viewport status, document clientWidth/scrollWidth/overflow, candidate evidence and explicit errors.
+- Relative screenshot paths, capture dimensions, a **1 CSS pixel** rounding tolerance and a **20 candidate** limit.
+
+A complete scan means every check completed; it may still contain overflow. Partial means some viewports completed and others failed (or a scan-level error occurred). Failed means none completed. A failed viewport is never a healthy check. Browser error details are recorded as bounded categories with generic messages, so arbitrary page exception/console text is not copied into reports.
+
+Document overflow is measured independently from **candidate contributors**. Candidates include a structural locator, tag, bounding rectangle, selected computed styles and width/overflow measurements. They are evidence, not proven CSS root causes. The detector groups overflowing descendants under their outermost overflowing branch, ignores hidden elements and clips descendant evidence at intentional scroll/clip regions. An oversized scroll container itself remains a candidate. Left-edge candidates can exist without an increased document scrollWidth.
+
+Output defaults to `artifacts/scans/<scan-id>/`. A custom `--output` is the parent directory, must be outside the inspected project, and receives a per-scan `.gitignore`. Only `package.json` is copied to a temporary isolated inspection directory and parsed there; source files and `.env` are not collected or read. No external model calls occur during scanning.
+
+**Privacy:** screenshots, URLs (including query strings), project paths and computed styles can contain sensitive information. Reports remain local and ignored by Git; review them before sharing.
+
+| Exit code | Meaning |
+|---|---|
+| 0 | Complete scan, no detected document overflow or candidate issues |
+| 1 | Complete scan, detected overflow/candidates |
+| 2 | Invalid options/project/URL, or partial/failed scan |
+
+## Verification
+
+```powershell
+npm test
+npm run test:smoke:playwright
 npm run fixture:build
-
-# Preview production build
 npm run fixture:preview
 ```
 
-### Playwright Smoke Test
-Starts the broken shop fixture, opens it in headless Chromium at 320px, verifies horizontal overflow, and saves a screenshot to `artifacts/broken-shop-320px.png`:
-```bash
-npm run test:smoke:playwright
-```
+`npm test` builds first, then runs real Chromium tests against test-owned HTTP pages and an isolated broken-shop copy. Tests verify responsive layouts, contained carousels, oversized scroll containers, hidden elements, grouping, rounding tolerance, local URL policy, redirects, failures, fresh browser state, source preservation and PNG/schema validity. Fixtures and `tests/healthy.html` are verification inputs.
 
-### Meta Model API Smoke Test
-Validates local configuration and executes a minimal real request to the configured Meta Model API endpoint. The test only reports `PASSED` when the response contains textual model output; missing configuration exits with status 2 (`BLOCKED`) and API/network failures exit with status 1 (`FAILED`):
-```bash
+See [actual results and manual steps](docs/RESULTS.md) and [phase boundaries](docs/PHASES.md).
+
+## Current limitations
+
+This is a rendered DOM geometry snapshot. It does not diagnose CSS, map source, detect general overlap/clipped text, repair files or create HTML reports. It does not traverse shadow roots or iframe contents, scroll to lazy content, expand carousels, or wait for arbitrary app-specific async work. Nested document navigation and popups fail explicitly; empty inherited about:blank/srcdoc frames may remain. Dynamic layouts, clipping shapes, rotated transforms, complex absolute-position clipping and other paint behavior can limit candidate precision. The 20-candidate cap is marked when truncated. Long pages may have evidence below the captured viewport. A bounded navigation/font timeout is not an operating-system execution limit for hostile page JavaScript.
+
+## Phase 0 Meta check
+
+The real Meta API smoke test remains **BLOCKED / unverified**. Phase 1 does not retry or claim a successful model call. Existing local credentials are preserved. To verify separately, configure a valid token locally in an ignored `.env` using `.env.example`, then run:
+
+```powershell
 npm run test:smoke:meta
 ```
-Configure `META_API_KEY`, `META_BASE_URL`, and `META_MODEL` in a local, ignored `.env` file. The documented defaults are `https://api.meta.ai/v1` and `muse-spark-1.3`; `META_API_KEY` must be a valid token from the Meta Model API dashboard. Never paste credentials into chat or commit `.env`.
+
+Do not overwrite an existing credential file. Only the explicitly invoked Meta configuration check loads `.env`; scanning does not.

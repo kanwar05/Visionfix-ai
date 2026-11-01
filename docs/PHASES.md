@@ -1,56 +1,37 @@
-# Implementation Roadmap & Phases — VisionFix AI
+# Implementation phases — VisionFix AI
 
-This document outlines the six defined phases of VisionFix AI — StressProof. Agents and developers must strictly follow the boundary of each phase and implement only the explicitly requested phase.
+Only Phase 1 is implemented by this change. No Phase 2 work is started.
 
----
+## Phase 0: Foundation (retained)
 
-## Phase 0: Foundation (Current Phase)
-**Goal**: Establish a minimal, working TypeScript monorepo foundation and verify core tooling capabilities without speculative features.
-- npm workspaces setup (`packages/cli`, `packages/core`, `fixtures/broken-shop`).
-- TypeScript compilation and typechecking configuration.
-- Minimal CLI printing application name, version, and phase.
-- Deliberately broken React + Vite shop fixture demonstrating 320px viewport overflow.
-- Playwright smoke test launching Chromium, capturing screenshot evidence, and deterministically asserting overflow.
-- Configurable Meta Model API integration with Zod validation, timeout handling, error categorization, and smoke test.
-- Repository rules (`AGENTS.md`) and documentation (`docs/`, `README.md`).
+TypeScript npm workspaces, CLI/version/help, broken-shop React + Vite fixture, headless Playwright smoke capture, and configurable Meta smoke-test tooling. The real Meta API success check remains BLOCKED / unverified.
 
----
+## Phase 1: Browser inspection and horizontal overflow detection (current)
 
-## Phase 1: Responsive Scanner (Future Phase)
-**Goal**: Build the automated multi-viewport layout scanner.
-- Viewport sweep matrix (e.g., 320px, 375px, 414px, 768px, 1024px, 1280px).
-- Automated detection of horizontal document overflow, clipped text, and element overlap.
-- Bounding client rect and computed style extraction for defective elements.
-- Generation of standardized structured issue representations.
+- Validate a React + Vite package manifest through an isolated temporary copy, and accept a separately running local HTTP URL.
+- Never run target scripts, install dependencies, collect source/.env files, or modify the target project.
+- Attempt 320, 375, 390, 768 and 1440 × 900px, scale 1, in fresh Chromium contexts.
+- Bound readiness/fonts and screenshot capture; disable motion; capture explicit navigation and browser failures.
+- Measure document-level horizontal overflow separately from bounded, grouped candidate elements with geometry and computed-style evidence.
+- Exclude hidden or correctly contained scroll-region content; retain oversized scroll containers.
+- Produce schema-validated JSON and relative PNG paths in an ignored per-scan directory.
+- Expose CLI help, optional output parent and documented 0/1/2 exit codes.
+- Verify real geometry, healthy carousel behavior, failures, schema/screenshots and source preservation.
 
----
+The local URL rule is not a network sandbox. Reports can contain sensitive rendered information. See README.md for limitations and docs/RESULTS.md for actual checks.
 
-## Phase 2: Diagnosis and Source Mapping (Future Phase)
-**Goal**: Connect layout failures to source code locations using Meta LLM diagnosis.
-- Source map resolution mapping rendered DOM elements back to React JSX component files.
-- Assembly of minimal, targeted diagnostic prompts containing element DOM, computed styles, and parent tree constraints.
-- Querying Meta Model API for root-cause diagnosis (e.g. rigid fixed width vs flex wrapping).
+## Phase 2: Diagnosis and source mapping (future)
 
----
+Map browser evidence to source locations and use minimal targeted context for model diagnosis. Not implemented.
 
-## Phase 3: Isolated Repair and Verification (Future Phase)
-**Goal**: Propose and test automated source-code repairs in an isolated workspace.
-- Temporary workspace creation (isolated copy / worktree) preserving the original project files.
-- AST-guided or precision patch application to React components and CSS stylesheets.
-- Re-running Playwright verification on the repaired bundle to verify that layout issues are resolved without regressions.
+## Phase 3: Isolated repair and verification (future)
 
----
+Propose and verify patches in isolated project copies, preserving original source until explicit approval. Not implemented.
 
-## Phase 4: Stress Testing and Proof Reports (Future Phase)
-**Goal**: Stress-test edge cases and generate definitive proof reports.
-- Viewport boundary stress testing (resizing animations, dynamic font scaling, localization text expansion).
-- Generation of local visual proof reports featuring before/after screenshots and delta metrics.
-- Export of portable HTML/JSON verification artifacts.
+## Phase 4: Stress testing and proof reports (future)
 
----
+Broaden layout stresses and visual proof reporting. Not implemented.
 
-## Phase 5: Evaluation and Submission (Future Phase)
-**Goal**: Benchmark performance and finalize production package.
-- Comprehensive evaluation across diverse web application fixtures.
-- Precision, recall, and repair success rate benchmarking.
-- End-to-end documentation, demo recording, and submission readiness.
+## Phase 5: Evaluation (future)
+
+Benchmark across a broader collection of applications. Not implemented.
