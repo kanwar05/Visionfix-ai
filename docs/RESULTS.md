@@ -1,4 +1,118 @@
-# Verification results — Phase 1
+# Verification results — Phase 2
+
+Verified on 2026-11-01 (Asia/Calcutta), Windows PowerShell, Node v24.21.0 and npm 12.1.0. Implementation and initial verification occurred in `artifacts/phase2-workspace/`. The reviewed Phase 2 changes were then applied to the developer workspace at the user's explicit request. Existing credential files were not displayed, copied, overwritten or deleted. The upload application alone attempted to load local configuration through the existing loader; no credential values or authorization headers were logged.
+
+**Phase 2: PARTIALLY VERIFIED.** Local source mapping/evidence preparation and independent response validation are implemented. Build, typecheck and retained headless screenshot capture pass. The final `npm.cmd test` run passed **97/97 tests** (35 retained Phase 1 tests plus 62 Phase 2 tests), with zero failures, skips or cancellations. **Live Meta diagnosis: BLOCKED / MISSING_CONFIG (native CLI exit 3).** No external model request was made and no live model diagnosis was obtained. Mocked unit tests are not evidence of live integration.
+
+## Files changed for Phase 2
+
+- `AGENTS.md`: explicit prohibition on deleting, overwriting, displaying or logging existing `.env` files/credentials.
+- `packages/core/src/source-locator.ts`: approved source snapshot, generic selector/static JSX ancestry/CSS module matching, relative bounded snippets and mapping uncertainty.
+- `packages/core/src/privacy.ts`: best-effort text secret filtering that preserves line numbers.
+- `packages/core/src/diagnosis-evidence.ts`: Phase 1 validation, safe PNG/source evidence preparation, local manifest, hashes and upload-time integrity checks.
+- `packages/core/src/diagnosis-model.ts`: officially documented Meta image requests, explicit consent, bounded HTTP handling, structured diagnosis and independent evidence-reference validation.
+- `packages/core/src/index.ts`, `packages/cli/src/index.ts`: Phase 2 exports, CLI workflow, summaries and 0/2/3 diagnosis exit codes. Phase 1 scan behavior and 0/1/2 exit codes remain independent of API configuration.
+- `package.json`, `packages/core/package.json`, `package-lock.json`: Phase 2 test commands and existing TypeScript compiler package declared as a core runtime dependency for JSX parsing. No new library family/provider was introduced.
+- `tests/source-locator.test.ts`, `tests/evidence.test.ts`, `tests/diagnosis-model.test.ts`, `tests/diagnosis-cli.test.ts`: required positive, negative, preservation, unit-mocked model and real-browser workflow coverage.
+- `README.md`, `docs/PHASES.md`, `docs/RESULTS.md`: supported commands, boundaries, privacy, exit codes and actual outcomes.
+
+No fixture source, existing Phase 1 implementation/tests, Phase 0 smoke script or credential template was changed. No repair, patch execution, dashboard or GitHub integration was implemented. No changes were committed or pushed.
+
+## Commands actually executed
+
+The initial commands below ran from `artifacts/phase2-workspace/` unless marked otherwise. Post-application checks are recorded separately below and ran from the repository root.
+
+| Command/check | Actual outcome |
+|---|---|
+| `node --version`; `npm.cmd --version` | PASSED: v24.21.0 / 12.1.0 |
+| `npm.cmd install --ignore-scripts --no-audit --no-fund` | PASSED: 83 packages installed in isolated copy |
+| `npm.cmd install --workspace=@visionfix/core typescript@^5.8.2 --save-prod --ignore-scripts --no-audit --no-fund` | Initial sandbox registry EACCES; identical command with approved execution PASSED, 1 package added |
+| `npm.cmd run build` | PASSED: core, CLI and fixture production builds. First attempt during parallel implementation failed because diagnosis-model.ts had not yet been created; resolved before checks |
+| `npm.cmd run typecheck` | PASSED; core declarations and workspace checks |
+| `node --import tsx --test tests/source-locator.test.ts` | PASSED: 10/10; sandbox tsx startup first failed with uv_os_get_passwd ENOMEM; approved execution passed |
+| `node --import tsx --test tests/evidence.test.ts` | PASSED: 9/9 after adding oversize-style regression; same initial sandbox startup issue, approved execution passed |
+| `node --import tsx --test tests/diagnosis-cli.test.ts` | PASSED: 2/2, including a real broken-shop scan, successful preparation, consent refusal, missing-config status and unchanged source/report hashes |
+| `node --import tsx --test tests/diagnosis-model.test.ts` | PASSED: 41/41 clearly labeled mocked unit tests after fixing fixture identity; not live model verification |
+| `npm.cmd test` | PASSED: final 97/97, exit 0, 23.18 seconds of test execution after ordered build; includes all 35 retained Phase 1 tests |
+| `npm.cmd run cli -- diagnose --help` | PASSED: Phase 2 workflow and exit codes printed, exit 0 |
+| `npm.cmd run test:smoke:playwright` | PASSED: actual 320px clientWidth / 517px scrollWidth / 197px overflow; real PNG, browser and fixture process closed |
+| Inspect prepared `manifest.json`; view `screenshot.png` | PASSED: full reviewed evidence contains only the selected browser data, two relevant relative snippets and bounded PNG |
+| Authorized isolated CLI from original repository cwd, shown below | BLOCKED: MISSING_CONFIG; native exit 3, saved separate diagnosis.json, no network/model request |
+| Before application: `git status --short` at original repository root | PASSED: empty; all tracked developer files preserved before the approved transfer |
+| `git diff --exit-code -- fixtures/broken-shop scripts/smoke-playwright.ts scripts/smoke-meta.ts .env.example` at original root | PASSED: no changes |
+| `git check-ignore .env artifacts/phase2-workspace` at original root | PASSED: both ignored |
+| `node artifacts/create-phase2-review.mjs` | PASSED: generated reviewed diff/hash inventory for 17 changed files; read-only `git apply --check` against original checkout passed |
+
+An initial full run had 56 passing / 26 failing tests. Model test cases failed during synthetic fixture creation because `issueId: test-issue` violated the stricter evidence issue identity schema; those failures did not exercise or prove model handling. The test fixture was corrected to derive the issue ID from its scan ID and viewport. Review also required at least one browser reference for all accepted diagnoses and changed oversized browser styles from silent truncation to explicit rejection. Final results above supersede that failed run.
+
+## Application to the developer workspace
+
+The user explicitly authorized transferring Phase 2 into the actual Visionfix-ai project. The reviewed patch was applied, and all 17 changed files matched the reviewed contents after normalizing line endings. An initial byte-hash comparison reported differences caused by Git's CRLF conversion; the subsequent normalized-content comparison passed. The documentation was then updated to record application and point to the retained review artifacts. Credential files and target fixture sources were preserved.
+
+| Command/check at repository root | Actual outcome |
+|---|---|
+| Apply reviewed patch and compare all 17 files | PASSED: normalized contents matched the reviewed implementation |
+| `npm.cmd install --offline --ignore-scripts --no-audit --no-fund` | PASSED: 1 package added from the local cache |
+| `npm.cmd test` | PASSED: 97/97 tests, zero failures, skips or cancellations; 24.14 seconds of test execution; ordered core, CLI and fixture production builds also passed |
+| `npm.cmd run typecheck` | PASSED: exit 0 |
+| `npm.cmd run cli -- --version` | PASSED: reports Phase 2 |
+| `npm.cmd run cli -- diagnose --help` | PASSED: diagnosis workflow and exit codes printed |
+| `git diff --check` | PASSED: no whitespace errors |
+| `git diff --exit-code -- fixtures/broken-shop scripts/smoke-playwright.ts scripts/smoke-meta.ts .env.example` | PASSED: fixture sources, Phase 0 smoke scripts and credential template unchanged |
+
+## Real broken-shop acceptance evidence
+
+The real Chromium scan generated during the CLI workflow test used an isolated broken-shop source copy. The browser measured overflow at 320/375/390px and none at 768/1440px. The selected 320px candidate has left 37px, width 480px and right 517px against a 320px viewport, for 197px measured overflow.
+
+Reviewed local artifacts retained under `artifacts/phase2-workspace/artifacts/`:
+
+- [Original scan report](../artifacts/phase2-workspace/artifacts/phase2-cli-CFM0jj/scans/69893794-59f3-415f-9b53-9fb3399862b6/report.json), scan ID `69893794-59f3-415f-9b53-9fb3399862b6`.
+- [Prepared manifest](../artifacts/phase2-workspace/artifacts/phase2-cli-CFM0jj/scans/69893794-59f3-415f-9b53-9fb3399862b6/diagnosis-7c1efad9-e092-4b36-b346-616b903df737/manifest.json).
+- [Reviewed screenshot](../artifacts/phase2-workspace/artifacts/phase2-cli-CFM0jj/scans/69893794-59f3-415f-9b53-9fb3399862b6/diagnosis-7c1efad9-e092-4b36-b346-616b903df737/screenshot.png), 320 × 900, 28,521 bytes.
+- [Actual blocked diagnosis output](../artifacts/phase2-workspace/artifacts/phase2-cli-CFM0jj/scans/69893794-59f3-415f-9b53-9fb3399862b6/diagnosis-7c1efad9-e092-4b36-b346-616b903df737/diagnosis.json).
+
+The manifest maps the candidate conservatively as **ambiguous**, with `src/App.tsx:26–33` and `src/styles.css:73–83`. Those reviewed snippets contain the JSX class and corresponding 480px width rule. This is static source evidence, not an obtained model diagnosis or proof of root cause. The structural-to-source logic contains no fixture identifiers.
+
+After reading the complete manifest and visually inspecting the PNG, the authorized check ran from the original repository root so the existing configuration loader could use the normal local configuration without copying any credential file:
+
+```powershell
+node ./artifacts/phase2-workspace/packages/cli/bin/visionfix.js diagnose --evidence ./artifacts/phase2-workspace/artifacts/phase2-cli-CFM0jj/scans/69893794-59f3-415f-9b53-9fb3399862b6/diagnosis-7c1efad9-e092-4b36-b346-616b903df737/manifest.json --allow-model-upload
+```
+
+It returned `BLOCKED: MISSING_CONFIG`. A second execution captured the native code explicitly using `$diagnosisExit = $LASTEXITCODE; Write-Output ('Diagnosis native exit code: ' + $diagnosisExit); exit $diagnosisExit`, confirming **3**. (PowerShell's first wrapper reported its own generic failure exit.) The safe output contains:
+
+```json
+{
+  "status": "blocked",
+  "code": "MISSING_CONFIG",
+  "message": "Meta credentials/configuration are unavailable or invalid. Configure META_API_KEY, META_BASE_URL and META_MODEL locally; preserve existing .env files."
+}
+```
+
+**Remediation:** configure a valid authorized Meta API key and documented image-capable model locally through process environment or the existing ignored credential file, without deleting/overwriting/displaying that file. Review evidence again and rerun the explicit upload command. Only a real successful multimodal response with independently valid source citations can complete live acceptance. Do not paste keys into chat. No fake diagnosis is supplied for this blocked check.
+
+## Manual review commands and limitations
+
+From the repository root:
+
+```powershell
+npm.cmd run build
+npm.cmd run typecheck
+npm.cmd test
+npm.cmd run cli -- diagnose --help
+```
+
+Review the retained [source diff](../artifacts/phase2-workspace/artifacts/phase2-review.patch) and [17-file hash inventory](../artifacts/phase2-workspace/artifacts/phase2-review-files.json). The review generator used an explicit safe file allowlist, excluded credential files and checked application without modifying the original checkout. These artifacts record the pre-application diff and hashes. Application was subsequently explicitly authorized by the user; the documentation updates above record that transfer.
+
+README.md has exact two-terminal Windows PowerShell commands for generating a new scan, preparing evidence, reviewing the manifest/image and explicitly uploading. `npm.cmd run test:scan` selects retained Phase 1 tests; `npm.cmd run test:diagnose` selects Phase 2 tests. Scan exit codes remain 0/1/2; diagnosis codes are 0 success (possibly uncertain/unmapped), 2 failed/invalid, 3 blocked.
+
+Source mapping is heuristic, limited to approved CSS/JSX/TSX directories and bounded snapshot data. Current structural Phase 1 selectors produce ambiguous mappings; dynamic components, unusual CSS/module transforms and unsupported source locations may be unmapped. Sources may change after preparation: only the reviewed snapshot is uploaded and validated. Hashes detect evidence changes, not an attacker replacing evidence and digest together. Secret filtering cannot guarantee complete removal and screenshot pixels are not redacted. The model has no tools, output cannot execute commands, and even grounded diagnoses remain hypotheses. HTTPS endpoint/model are configurable; unknown image model support blocks rather than being guessed. Hostile concurrent filesystem mutation is outside an OS sandbox guarantee.
+
+Official Meta image formats, model input support and structured output were verified against [image understanding](https://dev.meta.ai/docs/image-understanding), [chat schemas](https://dev.meta.ai/docs/api-reference/chat-completions/schemas), [models](https://dev.meta.ai/docs/models) and [structured output](https://dev.meta.ai/docs/structured-output). DevRelay tools were unavailable, so no challenge/account lookup or community-gateway results are claimed. A supplementary [first-person DEV discussion of untrusted data boundaries](https://dev.to/raju_dandigam/prompt-injection-is-a-data-flow-problem-across-retrieval-mcp-and-tools-4j7l) informed review; official documentation governs API implementation.
+
+---
+
+# Historical verification results — Phase 1
 
 Verified on 2026-10-30 (Asia/Calcutta), Windows PowerShell, Node v24.21.0 and npm 12.1.0.
 

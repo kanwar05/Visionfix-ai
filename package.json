@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "VisionFix AI — StressProof browser inspection and overflow detection (Phase 1)",
+  "description": "VisionFix AI — StressProof diagnosis and source mapping (Phase 2)",
   "workspaces": [
     "packages/*",
     "fixtures/*"
@@ -17,8 +17,9 @@
     "fixture:preview": "npm run --workspace=@visionfix-fixture/broken-shop preview",
     "test:smoke:playwright": "tsx scripts/smoke-playwright.ts",
     "test:smoke:meta": "tsx scripts/smoke-meta.ts",
-    "test": "npm run build && node --import tsx --test tests/scan.test.ts",
-    "test:scan": "npm test"
+    "test": "npm run build && node --import tsx --test tests/*.test.ts",
+    "test:scan": "npm run build && node --import tsx --test tests/scan.test.ts",
+    "test:diagnose": "npm run build && node --import tsx --test tests/source-locator.test.ts tests/evidence.test.ts tests/diagnosis-model.test.ts tests/diagnosis-cli.test.ts"
   },
   "devDependencies": {
     "@types/node": "^22.13.9",

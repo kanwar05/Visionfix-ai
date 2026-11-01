@@ -1,6 +1,6 @@
 # VisionFix AI — StressProof
 
-Phase 1 implements local browser inspection and horizontal overflow detection for a separately running React + Vite application. The existing Phase 0 CLI, fixture, Playwright smoke test and Meta smoke-test command remain available. AI diagnosis, source mapping, repairs and dashboards are future work.
+Phase 2 adds reviewed evidence preparation, heuristic source mapping and a real configurable Meta multimodal diagnosis client to the Phase 1 scanner. The Phase 0 CLI, fixture and smoke commands remain available. No patches, repair execution, dashboard or GitHub integration are implemented.
 
 ## Setup
 
@@ -86,14 +86,68 @@ See [actual results and manual steps](docs/RESULTS.md) and [phase boundaries](do
 
 ## Current limitations
 
-This is a rendered DOM geometry snapshot. It does not diagnose CSS, map source, detect general overlap/clipped text, repair files or create HTML reports. It does not traverse shadow roots or iframe contents, scroll to lazy content, expand carousels, or wait for arbitrary app-specific async work. Nested document navigation and popups fail explicitly; empty inherited about:blank/srcdoc frames may remain. Dynamic layouts, clipping shapes, rotated transforms, complex absolute-position clipping and other paint behavior can limit candidate precision. The 20-candidate cap is marked when truncated. Long pages may have evidence below the captured viewport. A bounded navigation/font timeout is not an operating-system execution limit for hostile page JavaScript.
+The scanner records a rendered DOM geometry snapshot. It does not detect general overlap/clipped text, repair files or create HTML reports. It does not traverse shadow roots or iframe contents, scroll to lazy content, expand carousels, or wait for arbitrary app-specific async work. Nested document navigation and popups fail explicitly; empty inherited about:blank/srcdoc frames may remain. Dynamic layouts, clipping shapes, rotated transforms, complex absolute-position clipping and other paint behavior can limit candidate precision. The 20-candidate cap is marked when truncated. Long pages may have evidence below the captured viewport. A bounded navigation/font timeout is not an operating-system execution limit for hostile page JavaScript.
 
 ## Phase 0 Meta check
 
-The real Meta API smoke test remains **BLOCKED / unverified**. Phase 1 does not retry or claim a successful model call. Existing local credentials are preserved. To verify separately, configure a valid token locally in an ignored `.env` using `.env.example`, then run:
+The earlier Phase 0 smoke test remains **BLOCKED / unverified**. Its text-only command is separate from Phase 2's image diagnosis acceptance check recorded in docs/RESULTS.md. Existing local credentials are preserved. To verify separately, configure a valid token locally using the safe names in `.env.example`, then run:
 
 ```powershell
 npm run test:smoke:meta
 ```
 
-Do not overwrite an existing credential file. Only the explicitly invoked Meta configuration check loads `.env`; scanning does not.
+Do not overwrite an existing credential file. Only explicitly invoked Meta commands (the smoke check or authorized diagnosis upload) load `.env`; scanning and preparation do not.
+
+## Prepare, review and upload diagnosis evidence
+
+Keep the target running as above, and generate a fresh scan. The following commands work individually in Windows PowerShell, from the repository root (use `npm.cmd` if your PowerShell execution policy blocks `npm.ps1`):
+
+```powershell
+npm.cmd run build
+npm.cmd run cli -- scan --project ./fixtures/broken-shop --url http://127.0.0.1:5180
+$scan = Get-ChildItem -LiteralPath ./artifacts/scans -Directory | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+npm.cmd run cli -- diagnose --project ./fixtures/broken-shop --report (Join-Path $scan.FullName 'report.json') --prepare
+$prepared = Get-ChildItem -LiteralPath $scan.FullName -Directory -Filter 'diagnosis-*' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+$evidence = Join-Path $prepared.FullName 'manifest.json'
+Get-Content -LiteralPath $evidence
+Start-Process -FilePath (Join-Path $prepared.FullName 'screenshot.png')
+```
+
+Preparation performs **no API request or configuration load**. It validates the Phase 1 report, its project association and screenshot, then selects the first completed viewport containing measured overflow/candidates. Failed viewport scans are excluded. It reads only bounded approved source into a private temporary snapshot, parses the copy, and writes a new `diagnosis-<uuid>` directory next to the report. The original report and target source are preserved. Preparation requires the report outside the target project.
+
+Review the complete manifest and image. They show precisely the browser geometry/styles, relative source snippets with inclusive line numbers, mapping confidence and PNG that will be sent. The request also contains a fixed diagnosis-only system instruction, output schema and configured model ID. It contains no full repository, target URL, absolute project path, tools or environment values. Authentication uses the configured token in a header that is never logged.
+
+Only after review, run this separate explicit upload command:
+
+```powershell
+npm.cmd run cli -- diagnose --evidence $evidence --allow-model-upload
+$LASTEXITCODE
+Get-Content -LiteralPath (Join-Path $prepared.FullName 'diagnosis.json')
+```
+
+Configure `META_API_KEY`, `META_BASE_URL` and `META_MODEL` locally in the existing ignored `.env` or process environment. **Never delete, overwrite, display or log credential files.** Upload alone loads configuration. Defaults remain the existing `https://api.meta.ai/v1` and `muse-spark-1.3`; the endpoint and model are configurable. Phase 2 permits documented Muse Spark 1.1/1.2/1.3 models (including 1.3 contributor), HTTPS without embedded credentials/query/fragment, and the Chat Completions image format `image_url: { url: 'data:image/png;base64,...' }`. Unverified models block before transmission; no provider or model is substituted. Official [image guidance](https://dev.meta.ai/docs/image-understanding), [chat schema](https://dev.meta.ai/docs/api-reference/chat-completions/schemas), [models](https://dev.meta.ai/docs/models) and [structured output](https://dev.meta.ai/docs/structured-output) were checked on 2026-11-01.
+
+`review.sha256` seals the exact manifest bytes; the manifest hashes the image and each reviewed snippet. Upload refuses changed evidence. The digest is a consistency check, not a signature against someone able to replace both files. To update evidence, prepare and review a new directory. Upload sends the reviewed snapshot; it does not reread or claim the target source is unchanged since preparation. Responses are bounded to 256 KiB and a 30-second deadline including body reading; redirects fail rather than forwarding credentials.
+
+| Diagnosis exit code | Meaning |
+|---|---|
+| 0 | Local preparation succeeded, or a model diagnosis and references validated; diagnosis may be uncertain/unmapped |
+| 2 | Invalid options/evidence, changed evidence, network/timeout/server failure, invalid JSON or unsupported references |
+| 3 | Upload permission missing, missing credentials, unavailable access/model or unverified image support |
+
+Authorized attempts on valid evidence save a separate `diagnosis.json` with `success`, `blocked` or `failed`, a stable code, limitations and any validated diagnosis. Consent refusal or invalid evidence creates no output. `grounded` means an evidence-supported hypothesis, never a verified root cause. Source references must cite supplied paths, existing reviewed line ranges and exact quotes; invented references fail. Ambiguous mappings cannot support grounded status. Suggested repairs are text only.
+
+Source search is limited to CSS (including modules), JSX and TSX under `src`, `app`, `pages`, `components` and `styles`. Dotfiles, credential/secret-like names, dependencies, build/report/generated outputs and binary content are excluded. Escaping symlinks are rejected; internal source symlinks are skipped. Literal class/ID evidence is preferred. Structural Phase 1 selectors can suggest static JSX ancestry and CSS class matches, but these remain ambiguous. Dynamic rendering, imported component expansion, unusual CSS module transforms and CSS escapes can remain unmapped. No fixture identifiers are built into the locator.
+
+Bounds: 2 MiB report, 4 MiB PNG, 512 KiB manifest, one viewport, five browser candidates, 200 source files / 2,000 entries, 128 KiB per source file / 1 MiB aggregate, and 20 snippets of at most 24 lines / 4 KiB each / 32 KiB aggregate. Evidence loaders additionally enforce reviewed snippet and total limits. Truncation is recorded. Only valid bounded RGB/RGBA PNG screenshots matching the viewport are accepted; hidden textual metadata is rejected.
+
+**Privacy:** text filtering is best effort and cannot guarantee removal of every secret. Screenshot pixels are not redacted and can contain sensitive details. Review every snippet and the image before upload. Untrusted webpage/source/image contents are data, never instructions; the model receives no shell or filesystem tools. This is not an OS sandbox for concurrently hostile filesystem mutation.
+
+```powershell
+npm.cmd run typecheck
+npm.cmd test
+npm.cmd run test:scan
+npm.cmd run test:diagnose
+```
+
+Model responses are mocked only in clearly labeled unit tests. Those tests prove validation/error handling, not live integration. See docs/RESULTS.md for the actual multimodal acceptance outcome and remaining blockers.
