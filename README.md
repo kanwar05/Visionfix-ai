@@ -1,6 +1,8 @@
 # VisionFix AI — StressProof
 
-Phase 2 adds reviewed evidence preparation, heuristic source mapping and a real configurable Meta multimodal diagnosis client to the Phase 1 scanner. The Phase 0 CLI, fixture and smoke commands remain available. No patches, repair execution, dashboard or GitHub integration are implemented.
+Phase 3 adds one-attempt CSS repair in a separate project copy, controlled builds/previews, and independent browser verification to the retained Phase 0–2 commands. Original target files are never automatically patched. No dashboard, GitHub integration or additional stress-test phase is implemented.
+
+The reviewed Phase 3 implementation was applied to the main developer workspace at the user's explicit request. The restarted `artifacts/phase3-restart/` review copy and previous attempt are retained for reference. Run the commands below from the main repository root.
 
 ## Setup
 
@@ -96,7 +98,7 @@ The earlier Phase 0 smoke test remains **BLOCKED / unverified**. Its text-only c
 npm run test:smoke:meta
 ```
 
-Do not overwrite an existing credential file. Only explicitly invoked Meta commands (the smoke check or authorized diagnosis upload) load `.env`; scanning and preparation do not.
+Do not overwrite an existing credential file. Only explicitly invoked Meta commands (the smoke check, authorized diagnosis upload or authorized repair attempt) load `.env`; scanning and local preparation do not.
 
 ## Prepare, review and upload diagnosis evidence
 
@@ -151,3 +153,86 @@ npm.cmd run test:diagnose
 ```
 
 Model responses are mocked only in clearly labeled unit tests. Those tests prove validation/error handling, not live integration. See docs/RESULTS.md for the actual multimodal acceptance outcome and remaining blockers.
+
+## Prepare, review and run an isolated CSS repair
+
+Phase 3 requires a sealed Phase 2 evidence manifest and a **successful, independently validated diagnosis** for the same issue. A blocked diagnosis is not a usable repair input. Obtain a real diagnosis with the scan/diagnose commands above; do not create or relabel a test response as live output. An unavailable Meta configuration blocks a model-powered repair rather than generating a substitute patch.
+
+The MVP supports one issue and one attempt per prepared run, with at most two explicitly approved existing CSS files. Each file must already have a supported source mapping in the reviewed Phase 2 evidence. There is no CLI option for supplying a deterministic test patch, no automatic retry, and no command that applies a repair to the original target.
+
+Repair bounds are **16 KiB per approved CSS file / 32 KiB total context**, **32 KiB unified diff**, and **80 added plus removed lines** across at most two files; plan JSON is capped at 128 KiB. Context is rejected when oversized rather than silently truncated. Source isolation permits 2,000 files, 32 MiB total and 4 MiB per file. Existing dependency copies permit 30,000 files, 400 MiB total and 32 MiB per file. Logs are capped at 64 KiB per process and marked when truncated; build timeouts cannot exceed 120 seconds and preview readiness cannot exceed 30 seconds. These bounds are independent of model output.
+
+First create a fresh developer-reviewed execution configuration. The [example configuration](examples/repair-execution.example.json) is for the shop demonstration: it approves `src/styles.css`, targets the specs content, and requires the checkout button to remain visible, enabled, receive a click and show the expected dialog. Its selectors are developer inputs; the repair algorithm contains no fixture selectors or fixes. Change these assertions for another application.
+
+From the checkout root, in Windows PowerShell, create a local configuration from that safe example and set actual executable/dependency paths:
+
+```powershell
+New-Item -ItemType Directory -Path ./artifacts -Force | Out-Null
+$execution = Get-Content -Raw -LiteralPath ./examples/repair-execution.example.json | ConvertFrom-Json
+$nodeExecutable = (Get-Command node).Source
+$execution.build.executable = $nodeExecutable
+$execution.server.executable = $nodeExecutable
+$execution.dependencyDirectory = (Resolve-Path -LiteralPath ./node_modules).Path
+$configPath = Join-Path (Resolve-Path -LiteralPath ./artifacts).Path ('repair-execution-' + [guid]::NewGuid().ToString() + '.json')
+$execution | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $configPath -Encoding UTF8
+Get-Content -LiteralPath $configPath
+```
+
+Review the native executable and argument arrays before authorizing execution. The example builds with Node and `node_modules/vite/bin/vite.js build`, then serves `node_modules/vite/bin/vite.js preview`. The default Vite `dist` output is required. VisionFix appends fixed loopback host, the configured separate port and `--strictPort`; these flags must not be supplied in the reviewed server arguments. It rejects an occupied port instead of attaching to another server. Choose a port different from the original application's port; the example uses **5192**, while the original shop uses 5180. Dependency paths relative to the config are resolved from the config file's directory.
+
+Using `$evidence` and `$prepared` from the completed diagnosis workflow above, prepare a repair plan locally:
+
+```powershell
+$diagnosis = Join-Path $prepared.FullName 'diagnosis.json'
+npm.cmd run cli -- repair --project ./fixtures/broken-shop --evidence $evidence --diagnosis $diagnosis --config $configPath --prepare
+$repairRun = Get-ChildItem -LiteralPath $prepared.FullName -Directory -Filter 'repair-*' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+$plan = Join-Path $repairRun.FullName 'repair-plan.json'
+Get-Content -LiteralPath $plan
+```
+
+Preparation makes no API request, runs no project code and installs no dependencies. It verifies the diagnosis/evidence references, compares the reviewed snippets against current CSS, and records full-file hashes plus bounded redacted CSS context, execution configuration and independent assertions. The plan and its digest are saved in a new `repair-<uuid>` directory beside the prepared evidence. Review the full CSS context and the already-reviewed screenshot before transmission. The local plan includes local paths and execution settings; only the approved browser/image/diagnosis/CSS context is supplied to the model, without these execution controls or a full repository.
+
+After review, upload and project execution require **both** explicit permissions:
+
+```powershell
+npm.cmd run cli -- repair --plan $plan --allow-model-upload --allow-project-execution
+$LASTEXITCODE
+Get-Content -LiteralPath (Join-Path $repairRun.FullName 'repair-report.json')
+```
+
+Omitting either permission blocks the attempt before input/configuration access or execution. An authorized attempt consumes its run identity, including an attempt that becomes blocked or rejected. After changing credentials, sources, evidence, configuration or assertions, prepare and review a new plan. The digest detects changed local inputs; it is not a signature against someone who can replace both the plan and digest.
+
+The flow verifies reviewed input hashes, checks Meta configuration and creates a physical working copy in a short, run-owned directory under the OS temporary directory, outside the target. Its absolute location is recorded in `repair-report.json` as `workspace` and in the run's `workspace-location.json`. Reports, logs, diffs and before/after screenshots stay beside the prepared evidence. Keeping the executable working directory short avoids Windows path-length failures without requiring changes to system long-path settings. It copies current disk state, including supported untracked source files, rather than an old Git HEAD. Secrets, `.env`, `.git`, tests, reports, build/generated outputs and unnecessary files are excluded. Source symlinks are unsupported, and no writable source or dependency links are created. Only supported source/configuration and common asset extensions are copied; projects requiring other inputs may be blocked or fail the baseline build.
+
+**Dependencies:** the reviewed `dependencyDirectory` must already contain React and Vite. Existing dependency files are copied physically into the isolated copy's `node_modules`; workspace symlink aliases and dependency credential files are skipped. VisionFix never runs an install command or install hook. Missing, unsupported or oversized dependencies are an explicit blocker. Install or manage dependencies yourself before preparing a new run.
+
+Before requesting a patch, the unmodified copy must build and reproduce the original failure with the configured target content and interaction. Failure to reproduce stops as `inconclusive`; no patch is applied. The model then proposes a structured explanation and unified diff. Independent validation rejects unsupported paths, traversal, symlinks, binary changes, creation/deletion/renames, unrelated files, stale hashes, oversized changes, new resource-loading CSS and any hunk that does not match exactly. Manifests, scripts, tests and credentials are never patch targets. Model output cannot choose execution commands, permissions, allowed paths or acceptance assertions.
+
+After applying an accepted proposal **only to the working copy**, VisionFix requires another successful build and reruns the original failing width and all five Phase 1 widths, 320/375/390/768/1440 × 900. It rejects unresolved target overflow, newly introduced or worsened Phase 1 geometry candidates, hidden/removed/clipped target content, substantial text shrinking, document overflow masking, missing screenshots and configured interaction regressions. The configured target must contain the actual reviewed overflow candidates at the original failing width. Before/after screenshots use matching viewports. These checks cover the selected content and geometry; they do not establish every behavior or visual property of an application.
+
+The layout-only MVP also preserves text paint at matching text nodes: changes to computed foreground/fill colors, ancestor backgrounds, filters, blending, shadows or painted pseudo-element overlays are rejected conservatively as `TARGET_PAINT_CHANGED`. Clear opaque foreground/background equality is treated as hidden text. This policy prevents a geometry-clean proposal from hiding content through changed paint, and may reject an otherwise legitimate repair that also changes visual styling. Paint descriptors are bounded to 256 KiB and are saved only as hashes. These assertions are not a proof of universal visual correctness.
+
+The optional developer-configured interaction is an actual guarded DOM click: native submission is prevented, browser network requests are blocked during the click, WebSockets are closed, and dialogs are dismissed. The shop example requires the checkout dialog assertion and performs no real purchase. Omitting `interaction` means no click behavior is tested; a verified result then covers only the other configured checks. Keep the interaction configured for the shop demonstration.
+
+Build/server commands run from the short isolated working directory with `shell: false`, native executable/argument arrays, bounded timeouts and capped sanitized logs. An environment allowlist omits inherited Meta credentials, Node options and npm hooks. A random run-owned preview file proves readiness on the recorded loopback URL. Windows uses a run-owned Job Object, and POSIX uses a process group, to terminate only the run-owned process tree, including descendants. The fixed Windows supervisor and its structured process specification use a separate short, run-owned temporary helper directory; only that helper is removed after confirmed process termination. The physical project copy remains available for review. Cleanup failure prevents a verified result.
+
+**Trusted execution is not a security sandbox.** A copied project still runs trusted build/configuration code with the current OS user's permissions and may access external files or networks. Review the code and execution configuration before granting `--allow-project-execution`. Text filtering is best effort; screenshot pixels are not redacted. Do not place credentials in execution arguments/configuration, and never delete, overwrite, display or log existing credential files.
+
+| Repair exit code | Meaning |
+|---|---|
+| 0 | Local plan preparation succeeded, or configured repair checks passed (`verified`) |
+| 1 | Proposal or after-patch verification was rejected (`rejected`) |
+| 2 | Invalid inputs, execution, cleanup or reporting failure (`failed`) |
+| 3 | Missing authorization/configuration/dependencies or unsupported case (`blocked`) |
+| 4 | Baseline failure/content/interaction could not be reproduced (`inconclusive`) |
+
+The schema-validated `repair-report.json` records input/source hashes, actual model/provider/request status, proposal and `proposal.diff`, changed files, the absolute run-owned working-copy location, baseline and after-build outcomes, verification URLs, viewport and interaction results, relative screenshot/log paths, cleanup and final reasons. A failed or rejected attempt preserves evidence/diff and restores approved CSS only inside its own working copy. The physical copy is retained for review at the location recorded in the report and `workspace-location.json`. Original target files remain unchanged in every case, and applying the exported diff later is a separate developer action.
+
+`verified` means only that the configured checks passed. Deterministic proposals used by infrastructure tests are labeled `deterministic-test` with `requestMade: false`; they do not prove a live AI repair. See [actual Phase 3 outcomes](docs/RESULTS.md) for a successful deterministic repair, a rejected bad proposal, preservation evidence and any live Meta blocker.
+
+```powershell
+npm.cmd run cli -- repair --help
+npm.cmd run typecheck
+npm.cmd test
+npm.cmd run test:repair
+```

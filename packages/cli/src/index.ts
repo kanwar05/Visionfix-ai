@@ -4,6 +4,7 @@ import {
   APPLICATION_NAME, APPLICATION_VERSION, CURRENT_PHASE,
   ScanConfigurationError, scanExitCode, scanProject, type ScanReport,
   prepareDiagnosisEvidence, runDiagnosis, EvidenceError, SourceLocationError, type EvidenceManifest,
+  prepareRepairPlan, runRepair, repairExitCode, RepairError,
 } from '@visionfix/core';
 
 function printHelp(): void {
@@ -13,6 +14,12 @@ function printHelp(): void {
   console.log('       visionfix scan --project <directory> --url <local-http-url> [--output <directory>]\n');
   console.log('       visionfix diagnose --project <directory> --report <report.json> --prepare');
   console.log('       visionfix diagnose --evidence <manifest.json> --allow-model-upload\n');
+  console.log('       visionfix repair --project <path> --evidence <manifest.json> --diagnosis <diagnosis.json> --config <execution.json> --prepare');
+  console.log('       visionfix repair --plan <repair-plan.json> --allow-model-upload --allow-project-execution\n');
+  console.log('repair: one CSS-only attempt in a physical project copy; original target files are never patched.');
+  console.log('  Review the plan, approved source context, execution arrays and assertions before authorizing.');
+  console.log('  Existing dependencies are copied; nothing is installed. Trusted code execution is not a sandbox.');
+  console.log('  Repair exit codes: 0 = verified/prepared; 1 = rejected; 2 = failed; 3 = blocked; 4 = inconclusive.\n');
   console.log('diagnose: prepare bounded local evidence, review manifest.json and screenshot.png, then explicitly upload.');
   console.log('  Preparation never loads API configuration or contacts a model.');
   console.log('  Upload verifies the evidence seal and image before sending. Secret filtering is incomplete.');
@@ -53,6 +60,10 @@ export async function runCli(args: string[] = process.argv.slice(2)): Promise<vo
   }
   if (args.length === 0 || (args.length === 1 && ['--version', '-v'].includes(args[0]))) {
     console.log(`${APPLICATION_NAME} v${APPLICATION_VERSION} (${CURRENT_PHASE})`);
+    return;
+  }
+  if (args[0] === 'repair') {
+    await runRepairCli(args.slice(1));
     return;
   }
   if (args[0] === 'diagnose') {
@@ -158,6 +169,51 @@ async function runDiagnose(args: string[]): Promise<void> {
       : error instanceof SourceLocationError ? `FAILED: SOURCE_LOCATION_ERROR. ${error.message}`
         : 'FAILED: diagnosis evidence could not be prepared or verified. Check the schema, evidence bounds, containment and file permissions. No target files were modified.');
     process.exitCode = 2;
+  }
+}
+
+async function runRepairCli(args: string[]): Promise<void> {
+  let values: { project?: string; evidence?: string; diagnosis?: string; config?: string; prepare?: boolean;
+    plan?: string; 'allow-model-upload'?: boolean; 'allow-project-execution'?: boolean };
+  try {
+    const parsed = parseArgs({ args, options: { project: { type: 'string' }, evidence: { type: 'string' },
+      diagnosis: { type: 'string' }, config: { type: 'string' }, prepare: { type: 'boolean' }, plan: { type: 'string' },
+      'allow-model-upload': { type: 'boolean' }, 'allow-project-execution': { type: 'boolean' },
+    }, strict: true, allowPositionals: false, tokens: true });
+    const seen = new Set<string>();
+    for (const token of parsed.tokens ?? []) {
+      if (token.kind !== 'option') continue;
+      if (seen.has(token.name)) throw new Error();
+      seen.add(token.name);
+    }
+    values = parsed.values;
+    if (values.prepare) {
+      if (![values.project, values.evidence, values.diagnosis, values.config].every((value) => value?.trim())
+        || values.plan !== undefined || values['allow-model-upload'] !== undefined || values['allow-project-execution'] !== undefined) throw new Error();
+    } else if (!values.plan?.trim() || [values.project, values.evidence, values.diagnosis, values.config, values.prepare].some((value) => value !== undefined)) throw new Error();
+  } catch {
+    console.error('FAILED: invalid repair options. Prepare with --project, --evidence, --diagnosis, --config and --prepare; run with --plan, --allow-model-upload and --allow-project-execution.');
+    process.exitCode = 2; return;
+  }
+  try {
+    if (values.prepare) {
+      const prepared = await prepareRepairPlan({ project: values.project!, evidence: values.evidence!, diagnosis: values.diagnosis!, config: values.config! });
+      console.log(`SUCCESS: repair plan prepared locally: ${prepared.planPath}`);
+      console.log(`Review ${prepared.plan.sources.length} approved CSS file(s), their contents/hashes, execution arrays and assertions. No model request or project execution occurred.`);
+      console.log('Use a new prepared run for each attempt. Original source files are never automatically patched.');
+      process.exitCode = 0; return;
+    }
+    const result = await runRepair({ plan: values.plan!, allowModelUpload: values['allow-model-upload'] === true,
+      allowProjectExecution: values['allow-project-execution'] === true });
+    console.log(`${result.status.toUpperCase()}: ${result.code}. ${result.message}`);
+    if (result.reportPath) console.log(`Report: ${result.reportPath}`);
+    if (result.report?.patch) console.log(`Diff: ${path.join(path.dirname(result.reportPath!), result.report.patch.path)}`);
+    if (result.report?.model.kind === 'deterministic-test') console.log('Infrastructure test only: no model-generated repair.');
+    process.exitCode = repairExitCode(result.status);
+  } catch (error) {
+    const status = error instanceof RepairError ? error.status : 'failed';
+    console.error(`${status.toUpperCase()}: ${error instanceof RepairError ? `${error.code}. ${error.message}` : 'Repair input could not be safely prepared.'}`);
+    process.exitCode = status === 'blocked' ? 3 : 2;
   }
 }
 

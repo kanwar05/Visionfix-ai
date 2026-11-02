@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "VisionFix AI — StressProof diagnosis and source mapping (Phase 2)",
+  "description": "VisionFix AI — StressProof isolated repair and independent verification (Phase 3)",
   "workspaces": [
     "packages/*",
     "fixtures/*"
@@ -19,7 +19,8 @@
     "test:smoke:meta": "tsx scripts/smoke-meta.ts",
     "test": "npm run build && node --import tsx --test tests/*.test.ts",
     "test:scan": "npm run build && node --import tsx --test tests/scan.test.ts",
-    "test:diagnose": "npm run build && node --import tsx --test tests/source-locator.test.ts tests/evidence.test.ts tests/diagnosis-model.test.ts tests/diagnosis-cli.test.ts"
+    "test:diagnose": "npm run build && node --import tsx --test tests/source-locator.test.ts tests/evidence.test.ts tests/diagnosis-model.test.ts tests/diagnosis-cli.test.ts",
+    "test:repair": "npm run build && node --import tsx --test tests/repair-*.test.ts"
   },
   "devDependencies": {
     "@types/node": "^22.13.9",

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "3.0.0",
+  "allowedCssFiles": ["src/styles.css"],
+  "dependencyDirectory": "../node_modules",
+  "build": {
+    "executable": "C:/Program Files/nodejs/node.exe",
+    "args": ["node_modules/vite/bin/vite.js", "build"],
+    "timeoutMs": 60000
+  },
+  "server": {
+    "executable": "C:/Program Files/nodejs/node.exe",
+    "args": ["node_modules/vite/bin/vite.js", "preview"],
+    "timeoutMs": 30000
+  },
+  "port": 5192,
+  "targetSelector": ".product-specs-banner",
+  "interaction": {
+    "selector": ".checkout-btn",
+    "expectedDialog": "Proceeding to checkout..."
+  }
+}

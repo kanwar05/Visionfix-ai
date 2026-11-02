@@ -1,4 +1,140 @@
-# Verification results — Phase 2
+# Verification results — Phase 3
+
+Verified on **2026-11-01 (Asia/Calcutta)**, Windows PowerShell, Node v24.21.0 / npm 12.1.0. At the user's restart request, a fresh Phase 2 baseline was copied into `artifacts/phase3-restart/`; the earlier `artifacts/phase3-workspace/` attempt was preserved. The reviewed restarted implementation was then applied to the main developer checkout at the user's explicit request. Original fixture sources and credentials were preserved.
+
+**Infrastructure PASSED:** the main checkout's `npm.cmd test` passed **220/220 tests**, including all **97 retained Phase 0–2 tests** and 123 new Phase 3 checks, with zero failures, skips or cancellations. Main-checkout test execution took **124.97 seconds** after a successful ordered core/CLI/fixture build; main typecheck also passed. The earlier isolated run passed the same 220 tests in 111.80 seconds. The complete real-process/real-Chromium deterministic repair flow passed all eight acceptance scenarios in both locations.
+
+**Live autonomous repair BLOCKED / MISSING_CONFIG:** the actual configuration preflight returned `blocked`, `MISSING_CONFIG`, `requestMade: false`. No live diagnosis, live patch or model-generated repair was obtained. Deterministic diagnoses/proposals are clearly labeled infrastructure inputs and never counted as live AI repairs. The Phase 3 live demonstration remains partially verified until valid Meta access is available.
+
+## File inventory and review
+
+The review contains 21 files: eight new core modules (`repair-schema.ts`, `repair-plan.ts`, `repair-patch.ts`, `repair-model.ts`, `repair-workspace.ts`, `repair-execution.ts`, `repair-browser.ts`, `repair.ts`); six new `tests/repair-*.test.ts` files; `examples/repair-execution.example.json`; and modifications to `packages/core/src/index.ts`, `packages/cli/src/index.ts`, `package.json`, `README.md`, `docs/PHASES.md` and this file.
+
+- [Reviewable implementation diff](../artifacts/phase3-restart/artifacts/phase3-review.patch).
+- [File inventory with original/current hashes](../artifacts/phase3-restart/artifacts/phase3-review-files.json).
+- [Collected acceptance reports and preservation hashes](../artifacts/phase3-restart/artifacts/phase3-handoff.json).
+- [Actual live configuration preflight](../artifacts/phase3-restart/artifacts/live-meta-preflight.json).
+
+These links point to the retained isolated review artifacts. The review generator originally checked applicability without applying changes; the user subsequently authorized application to the main checkout. No fixture source, credential file, existing Phase 0–2 test, original scan report or Phase 0 smoke script was changed. No commit or push was performed. No dashboard, GitHub integration, automatic original-project application or Phase 4 stress testing was implemented.
+
+## Commands actually executed
+
+The initial commands below ran from `artifacts/phase3-restart/` unless marked otherwise. Post-application checks are recorded separately and run from the main repository root. `npm.cmd` is the Windows PowerShell spelling used for verification.
+
+| Command | Actual outcome |
+|---|---|
+| `npm.cmd install --offline --ignore-scripts --no-audit --no-fund` | PASSED: 84 existing development packages installed in the implementation copy, without install hooks. The repair runtime never installs dependencies. |
+| `npm.cmd run --workspace=@visionfix/core build` | PASSED during focused checks and final verification |
+| `npm.cmd run --workspace=@visionfix/cli build` | PASSED |
+| `node --test tests/repair-workspace.test.ts tests/repair-execution.test.ts` | PASSED: 13/13, including actual Windows descendant cleanup, port ownership and long artifact paths with a short working directory |
+| `node --test tests/repair-flow.test.ts` | PASSED: 8/8 end-to-end infrastructure cases; 101.41 seconds |
+| `node --test --test-name-pattern 'matching content\|changed paint' tests/repair-browser.test.ts` | PASSED: 5/5 selected real-browser checks during paint review |
+| `npm.cmd test` | PASSED: ordered production builds, then 220/220 tests; exit 0, 111.80 seconds of tests |
+| `npm.cmd run typecheck` | PASSED: core declarations and workspace checks, exit 0 |
+| `npm.cmd run cli -- --version` | PASSED: version 0.1.0, Phase 3 |
+| `npm.cmd run cli -- repair --help` | PASSED: local preparation, separate upload/execution permissions and 0/1/2/3/4 exit codes |
+| `node artifacts/collect-phase3-results.mjs` | PASSED: collected actual final-run reports; original CSS and synthetic test credential hashes both unchanged |
+| Visual inspection of final before/after 320px PNGs | PASSED: original cropped specs content becomes visible in wrapped rows; checkout remains visible |
+| `node artifacts/create-phase3-review.mjs`; read-only `git apply --check` at original root | PASSED: 21-file review bundle applies cleanly; no source changes applied to main |
+| `node artifacts/phase3-restart/artifacts/check-meta-config.mjs` from original repository root | BLOCKED live demonstration: MISSING_CONFIG; no network request or fabricated result |
+| Before application: `git status --short` at original root | PASSED: empty before applying the reviewed Phase 3 changes |
+| `git diff --exit-code -- fixtures/broken-shop .env.example` at original root | PASSED: original fixture/template unchanged |
+
+The public suite includes all patch/model unit checks with explicit deterministic/mock labels. Native Node 24 TypeScript stripping was used for selected tests to avoid tsx's earlier sandbox startup problem; the final public command uses the repository's normal tsx convention. Vite/esbuild directory access was denied during one sandboxed build; the approved outside-sandbox build/test command passed. Initial fixture-server messages about selecting an unused port belong to the test harness's separately running source application; repair preview ports use strict configured ports and nonce ownership proof.
+
+## Main workspace application
+
+The user explicitly approved application with `update changes`. All 21 reviewed files were applied to the main checkout and compared with the reviewed copy, allowing Git's normal Windows line-ending normalization. No dependency reinstall was needed because Phase 3 introduces no new dependency packages. The isolated review artifacts retain the pre-application diff and hashes; they were not regenerated after application. Original fixture sources and credentials were not modified.
+
+The following checks actually ran from the main repository root after application:
+
+| Command/check | Actual main-checkout outcome |
+|---|---|
+| `npm.cmd test` | PASSED: 220/220, zero failures, skips or cancellations; 124.97 seconds of tests; ordered core, CLI and fixture production builds passed |
+| `npm.cmd run typecheck` | PASSED, exit 0 |
+| `npm.cmd run cli -- --version` | PASSED: Phase 3 |
+| `npm.cmd run cli -- repair --help` | PASSED: reviewed preparation and dual-authorized execution workflow |
+| `git diff --check` | PASSED |
+| `git diff --exit-code -- fixtures/broken-shop .env.example AGENTS.md scripts/smoke-meta.ts scripts/smoke-playwright.ts` | PASSED: fixture sources, safe template, repository rules and retained smoke scripts unchanged |
+
+The main run produced [a successful deterministic repair report](../artifacts/phase3-infrastructure-SBWsB2/scans/900ceaf4-a16e-4412-a946-3e234a091065/diagnosis-acbc9926-bc52-46ca-b973-860152cc9642/repair-4de9f10f-f978-4318-a6ab-a4847235dcad/repair-report.json) and [an ineffective-patch rejection report](../artifacts/phase3-infrastructure-SBWsB2/scans/900ceaf4-a16e-4412-a946-3e234a091065/diagnosis-acbc9926-bc52-46ca-b973-860152cc9642/repair-9e502a10-adb0-45df-86a7-c2c898c1572c/repair-report.json). Both use test-supplied proposals, not live AI output; source and synthetic-credential preservation checks passed.
+
+## Successful deterministic repair
+
+The final public test run created [the successful repair report](../artifacts/phase3-restart/artifacts/phase3-infrastructure-qATM88/scans/dcadfd42-a16a-445a-89d3-135853976a83/diagnosis-1fb7435f-8536-444e-9739-ccabf60bab2c/repair-f9de16b4-6d99-48ed-ba8e-d5820d72ddae/repair-report.json), with status **verified**, code `CONFIGURED_CHECKS_PASSED`, `model.kind: deterministic-test`, and `requestMade: false`.
+
+The test-supplied [unified CSS diff](../artifacts/phase3-restart/artifacts/phase3-infrastructure-qATM88/scans/dcadfd42-a16a-445a-89d3-135853976a83/diagnosis-1fb7435f-8536-444e-9739-ccabf60bab2c/repair-f9de16b4-6d99-48ed-ba8e-d5820d72ddae/proposal.diff) changes the reviewed rigid width to a responsive width and permits existing flex content to wrap. This specific proposal exists only in tests; production patch generation has no fixture fix or selector lookup.
+
+| Viewport | Baseline document overflow / candidates | After repair overflow / candidates |
+|---|---:|---:|
+| 320 × 900 | 197px / 1 | 0px / 0 |
+| 375 × 900 | 142px / 1 | 0px / 0 |
+| 390 × 900 | 127px / 1 | 0px / 0 |
+| 768 × 900 | 0px / 0 | 0px / 0 |
+| 1440 × 900 | 0px / 0 | 0px / 0 |
+
+Both isolated builds succeeded. All five content fingerprints, visibility/containment checks, paint-preservation checks and checkout interactions passed. Checkout was visible and enabled, received an actual guarded click and produced its expected dialog; no purchase request was allowed. Scan and content screenshots were captured at matching viewport sizes, and run-owned processes were stopped. Original source hashes remained unchanged. The accepted physical copy is retained at the absolute `workspace` path recorded in the report and `workspace-location.json`.
+
+## Rejected bad proposal and preservation evidence
+
+The [ineffective-patch report](../artifacts/phase3-restart/artifacts/phase3-infrastructure-qATM88/scans/dcadfd42-a16a-445a-89d3-135853976a83/diagnosis-1fb7435f-8536-444e-9739-ccabf60bab2c/repair-75a14b3c-5077-4d09-9253-a80d54262f00/repair-report.json) records **rejected / VERIFICATION_REJECTED** for a deterministic proposal changing 480px to 479px. The [bad diff](../artifacts/phase3-restart/artifacts/phase3-infrastructure-qATM88/scans/dcadfd42-a16a-445a-89d3-135853976a83/diagnosis-1fb7435f-8536-444e-9739-ccabf60bab2c/repair-75a14b3c-5077-4d09-9253-a80d54262f00/proposal.diff) was preserved. The original overflow remained, so the copied CSS was reverted, `workspacePatchReverted` is true, and original source hashes are unchanged.
+
+Other real end-to-end cases rejected content hiding, document-overflow masking, and a geometry-clean repair that broke checkout click delivery. Baseline nonreproduction and a configured target unrelated to the evidence stopped as **inconclusive** before a patch. A failed baseline build and occupied port failed explicitly; a failed after-build rejected the proposal. Missing dependencies blocked, no install occurred, and the pre-existing occupied server remained running. An attempt cannot be reused. Unit checks also rejected invented/traversal/absolute/credential paths, symlink and hardlink escapes, stale hashes, creation/deletion/rename/binary changes, oversized diffs, inexact hunks, new resource-loading CSS and multiline resource argument changes.
+
+[Preservation proof](../artifacts/phase3-restart/artifacts/phase3-handoff.json) records equal expected/actual original CSS SHA-256 hashes and equal hashes for the **synthetic credential file created only by the test harness**. The actual developer `.env` was not hashed, displayed, copied, overwritten or deleted. The normal configuration loader alone was invoked for the safe preflight and printed no credential value or authorization header. The collector explicitly reads only its test-owned credential sentinel. Every runtime report independently records preservation of the copied-source baseline against the original supported source files.
+
+## Restart and resolved failures
+
+The preserved first attempt failed before the application build: deeply nested artifact paths exceeded Windows PowerShell/native working-directory limits. The restart uses short physical OS-temp working copies, records their paths locally, and leaves reports/screenshots/logs beside the reviewed evidence. It does not alter system long-path settings, create writable links or attach to unrelated processes. The static Windows Job Object supervisor uses its own short temporary helper directory, which is removed only after confirmed termination.
+
+During restart verification, the deterministic harness initially omitted the installed `tinyglobby` dependency and correctly produced a failed baseline build; the harness dependency set was corrected without adding runtime installation. The expanded ownership marker initially failed strict patch validation; the allowed marker schema was updated to include the run-directory ownership metadata. A review found and fixed target/evidence binding, transparent/zero-contrast paint hiding, multiline CSS resource changes, and CSS BOM consistency. All are covered by the final 220 passing checks. No failed check was relabeled as live success.
+
+## Exact manual commands for a real model-powered run
+
+Run the following from the main repository root. First run `npm.cmd run build` and `npm.cmd run typecheck`. Start the original app separately in terminal 1:
+
+```powershell
+npm.cmd run fixture:dev
+```
+
+In terminal 2, create and review real evidence and obtain a real successful diagnosis:
+
+```powershell
+npm.cmd run cli -- scan --project ./fixtures/broken-shop --url http://127.0.0.1:5180
+$scan = Get-ChildItem -LiteralPath ./artifacts/scans -Directory | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+npm.cmd run cli -- diagnose --project ./fixtures/broken-shop --report (Join-Path $scan.FullName 'report.json') --prepare
+$prepared = Get-ChildItem -LiteralPath $scan.FullName -Directory -Filter 'diagnosis-*' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+$evidence = Join-Path $prepared.FullName 'manifest.json'
+Get-Content -LiteralPath $evidence
+Start-Process -FilePath (Join-Path $prepared.FullName 'screenshot.png')
+npm.cmd run cli -- diagnose --evidence $evidence --allow-model-upload
+if ($LASTEXITCODE -ne 0) { throw 'A real validated diagnosis is required; resolve the reported blocker before repair.' }
+```
+
+Configure credentials only through the existing ignored credential file or local environment, without deleting, overwriting, displaying or logging it. README.md contains the exact PowerShell commands to create a new reviewed execution configuration from `examples/repair-execution.example.json`, setting the real Node executable and existing dependency directory. Review its paths, CSS approvals, port and assertions, then:
+
+```powershell
+$diagnosis = Join-Path $prepared.FullName 'diagnosis.json'
+npm.cmd run cli -- repair --project ./fixtures/broken-shop --evidence $evidence --diagnosis $diagnosis --config $configPath --prepare
+$repairRun = Get-ChildItem -LiteralPath $prepared.FullName -Directory -Filter 'repair-*' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+$plan = Join-Path $repairRun.FullName 'repair-plan.json'
+Get-Content -LiteralPath $plan
+npm.cmd run cli -- repair --plan $plan --allow-model-upload --allow-project-execution
+$LASTEXITCODE
+Get-Content -LiteralPath (Join-Path $repairRun.FullName 'repair-report.json')
+```
+
+Repair exits: **0** prepared/verified; **1** rejected; **2** failed; **3** blocked; **4** inconclusive. Prepare and review a fresh plan for another attempt. There is no CLI argument for a supplied test patch and no automatic application to the original target.
+
+## Remaining limitations and sources
+
+Only trusted local React + Vite projects with supported physical dependencies and default `dist` output are supported initially. Source copies and execution environment filtering are not an OS/network security sandbox. CSS context, copying, diff, logs and browser checks have documented bounds. The model has no tools and cannot choose commands, permissions, allowed paths or assertions. Only configured target content/interactions are checked, and paint preservation is conservative: legitimate color/filter/overlay changes are rejected. These checks do not prove universal visual correctness or application behavior. Secret filtering is best effort, screenshot pixels are not redacted, and digest seals are not signatures against an attacker who can replace both content and digest. Physical working copies are retained for review rather than automatically deleting source artifacts.
+
+API implementation follows Meta's official [chat schemas](https://dev.meta.ai/docs/api-reference/chat-completions/schemas), [image guidance](https://dev.meta.ai/docs/image-understanding), [model support](https://dev.meta.ai/docs/models) and [structured output](https://dev.meta.ai/docs/structured-output). Process handling was checked against [Node's child-process documentation](https://nodejs.org/api/child_process.html). DevRelay gateway tools were unavailable; no challenge/account lookup is claimed. Community Wisdom is limited to first-person reports: [Dmitry Merejkowsky's process cleanup incident](https://dev.to/dmerejkowsky/adventures-in-ci-land-44oo) and [Sergey Shinder's orphan-process incident](https://dev.to/sergey_shinder_ab2d943365/our-service-became-pid-1-and-never-collected-its-dead-children-5cim) illustrate why terminating only a wrapper is insufficient. Official documentation and executed tests govern this implementation.
+
+---
+
+# Historical verification results — Phase 2
 
 Verified on 2026-11-01 (Asia/Calcutta), Windows PowerShell, Node v24.21.0 and npm 12.1.0. Implementation and initial verification occurred in `artifacts/phase2-workspace/`. The reviewed Phase 2 changes were then applied to the developer workspace at the user's explicit request. Existing credential files were not displayed, copied, overwritten or deleted. The upload application alone attempted to load local configuration through the existing loader; no credential values or authorization headers were logged.
 
